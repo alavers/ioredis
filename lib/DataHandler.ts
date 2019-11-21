@@ -37,6 +37,13 @@ interface IParserOptions {
   dropBufferSupport: boolean;
 }
 
+function makePrettyReply(reply) {
+    if (Buffer.isBuffer(reply)) {
+        return reply.toString();
+    }
+    return reply;
+}
+
 export default class DataHandler {
   constructor(private redis: IDataHandledable, parserOptions: IParserOptions) {
     const parser = new RedisParser({
@@ -49,6 +56,8 @@ export default class DataHandler {
         this.returnFatalError(err);
       },
       returnReply: (reply: any) => {
+        let prettyReply = Array.isArray(reply) ? reply.map(makePrettyReply) : makePrettyReply(reply);
+        debug('receive reply "%o"', prettyReply);
         this.returnReply(reply);
       }
     });
