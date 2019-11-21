@@ -50,6 +50,7 @@ class DataHandler {
     }
     returnReply(reply) {
         if (this.handleMonitorReply(reply)) {
+            debug('handleMonitorReply');
             return;
         }
         if (this.handleSubscriberReply(reply)) {
@@ -57,9 +58,11 @@ class DataHandler {
         }
         const item = this.shiftCommand(reply);
         if (!item) {
+            debug('there is no item');
             return;
         }
         if (command_1.default.checkFlag("ENTER_SUBSCRIBER_MODE", item.command.name)) {
+            debug('enter subscriber mode');
             this.redis.condition.subscriber = new SubscriptionSet_1.default();
             this.redis.condition.subscriber.add(item.command.name, reply[1].toString());
             if (!fillSubCommand(item.command, reply[2])) {
@@ -67,11 +70,13 @@ class DataHandler {
             }
         }
         else if (command_1.default.checkFlag("EXIT_SUBSCRIBER_MODE", item.command.name)) {
+            debug('exit subscriber mode');
             if (!fillUnsubCommand(item.command, reply[2])) {
                 this.redis.commandQueue.unshift(item);
             }
         }
         else {
+            debug('resolve the command');
             item.command.resolve(reply);
         }
     }

@@ -88,6 +88,7 @@ export default class DataHandler {
 
   private returnReply(reply: ReplyData) {
     if (this.handleMonitorReply(reply)) {
+      debug('handleMonitorReply');
       return;
     }
     if (this.handleSubscriberReply(reply)) {
@@ -96,9 +97,11 @@ export default class DataHandler {
 
     const item = this.shiftCommand(reply);
     if (!item) {
+      debug('there is no item');
       return;
     }
     if (Command.checkFlag("ENTER_SUBSCRIBER_MODE", item.command.name)) {
+      debug('enter subscriber mode');
       this.redis.condition.subscriber = new SubscriptionSet();
       this.redis.condition.subscriber.add(
         item.command.name,
@@ -109,10 +112,12 @@ export default class DataHandler {
         this.redis.commandQueue.unshift(item);
       }
     } else if (Command.checkFlag("EXIT_SUBSCRIBER_MODE", item.command.name)) {
+      debug('exit subscriber mode');
       if (!fillUnsubCommand(item.command, reply[2])) {
         this.redis.commandQueue.unshift(item);
       }
     } else {
+      debug('resolve the command');
       item.command.resolve(reply);
     }
   }

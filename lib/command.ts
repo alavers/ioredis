@@ -11,6 +11,9 @@ import {
 import { flatten } from "./utils/lodash";
 import { get as getPromise } from "./promiseContainer";
 import { CallbackFunction, ICommand, CommandParameter } from "./types";
+import { Debug } from "./utils";
+
+const debug = Debug("command");
 
 interface ICommandOptions {
   /**
@@ -28,6 +31,13 @@ type ArgumentTransformer = (args: any[]) => any[];
 type ReplyTransformer = (reply: any) => any;
 interface IFlagMap {
   [flag: string]: { [command: string]: true };
+}
+
+function makePrettyArgs(a) {
+    if (Buffer.isBuffer(a)) {
+        return a.toString();
+    }
+    return a;
 }
 
 export interface ICommandNameFlags {
@@ -329,10 +339,13 @@ export default class Command implements ICommand {
    */
   private _convertValue(resolve: Function): (result: any) => void {
     return value => {
+      let prettyArgs = Array.isArray(this.args) ? this.args.map(makePrettyArgs) : makePrettyArgs(this.args);
       try {
         resolve(this.transformReply(value));
+        debug('resolved %s %o', this.name, prettyArgs);
       } catch (err) {
         this.reject(err);
+        debug('rejected %s %o', this.name, prettyArgs);
       }
       return this.promise;
     };

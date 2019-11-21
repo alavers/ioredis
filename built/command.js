@@ -6,6 +6,14 @@ const standard_as_callback_1 = require("standard-as-callback");
 const utils_1 = require("./utils");
 const lodash_1 = require("./utils/lodash");
 const promiseContainer_1 = require("./promiseContainer");
+const utils_2 = require("./utils");
+const debug = utils_2.Debug("command");
+function makePrettyArgs(a) {
+    if (Buffer.isBuffer(a)) {
+        return a.toString();
+    }
+    return a;
+}
 /**
  * Command instance
  *
@@ -214,11 +222,14 @@ class Command {
      */
     _convertValue(resolve) {
         return value => {
+            let prettyArgs = Array.isArray(this.args) ? this.args.map(makePrettyArgs) : makePrettyArgs(this.args);
             try {
                 resolve(this.transformReply(value));
+                debug('resolved %s %o', this.name, prettyArgs);
             }
             catch (err) {
                 this.reject(err);
+                debug('rejected %s %o', this.name, prettyArgs);
             }
             return this.promise;
         };
