@@ -53,6 +53,7 @@ class Command {
         this.name = name;
         this.transformed = false;
         this.isCustomCommand = false;
+        this.inTransaction = false;
         this.replyEncoding = options.replyEncoding;
         this.errorStack = options.errorStack;
         this.args = lodash_1.flatten(args);

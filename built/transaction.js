@@ -21,6 +21,11 @@ function addTransactionSupport(redis) {
             return multi.call(this);
         }
         const pipeline = new pipeline_1.default(this);
+        const sendCommand = pipeline.sendCommand.bind(pipeline);
+        pipeline.sendCommand = function (command) {
+            command.inTransaction = true;
+            sendCommand(command);
+        };
         pipeline.multi();
         if (Array.isArray(commands)) {
             pipeline.addBatch(commands);

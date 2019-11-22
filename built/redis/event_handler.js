@@ -181,11 +181,16 @@ function readyHandler(self) {
                 debug("resend %d unfulfilled commands", self.prevCommandQueue.length);
                 while (self.prevCommandQueue.length > 0) {
                     const item = self.prevCommandQueue.shift();
-                    if (item.select !== self.condition.select &&
-                        item.command.name !== "select") {
-                        self.select(item.select);
+                    if (item.command.inTransaction) {
+                        item.command.reject(new Error("Cannot resend command that was in a transaction block"));
                     }
-                    self.sendCommand(item.command, item.stream);
+                    else {
+                        if (item.select !== self.condition.select &&
+                            item.command.name !== "select") {
+                            self.select(item.select);
+                        }
+                        self.sendCommand(item.command, item.stream);
+                    }
                 }
             }
             else {
