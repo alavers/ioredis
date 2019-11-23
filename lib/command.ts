@@ -154,6 +154,7 @@ export default class Command implements ICommand {
   private callback: CallbackFunction;
   private transformed: boolean = false;
   public isCustomCommand: boolean = false;
+  public inTransaction: boolean = false;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;

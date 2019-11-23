@@ -87,6 +87,22 @@ export function closeHandler(self) {
     if (self.commandQueue.length) {
       self.prevCommandQueue = self.commandQueue;
     }
+    if (self.offlineQueue.length) {
+      for (let i = 0; i < self.offlineQueue.length; ) {
+        const item = self.offlineQueue.peekAt(i);
+        if (item && item.command.inTransaction) {
+          self.offlineQueue.remove(i, 1);
+          debug(
+            "removed. i is %s, length is now: %s",
+            i,
+            self.offlineQueue.length
+          );
+          item.command.reject(new Error("Cannot resend transacted command"));
+        } else {
+          i++;
+        }
+      }
+    }
 
     if (self.manuallyClosing) {
       self.manuallyClosing = false;
