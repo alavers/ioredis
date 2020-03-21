@@ -109,4 +109,28 @@ describe("reconnectOnError", function() {
         done();
       });
   });
+
+  it("should work with multi", function(done) {
+    var redis = new Redis({
+      reconnectOnError: function() {
+        redis.del("foo");
+        return 2;
+      }
+    });
+
+    redis.set("foo", "bar");
+    redis.set("i", 1);
+    redis
+      .pipeline()
+      .sadd("foo", "a")
+      .multi()
+      .get("foo")
+      .incr("i")
+      .exec()
+      .exec(function(err, res) {
+        console.log({ err, res });
+        // expect(res).to.eql([[null, "bar"], [null, 1]]);
+        done();
+      });
+  });
 });
