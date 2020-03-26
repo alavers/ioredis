@@ -1,7 +1,10 @@
 "use strict";
 
+import Deque = require("denque");
+import { AbortError } from "redis-errors";
 import Command from "../command";
 import { MaxRetriesPerRequestError } from "../errors";
+import { ICommandItem, ICommand } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
 
@@ -77,6 +80,35 @@ export function connectHandler(self) {
   };
 }
 
+function abortError(command: ICommand): AbortError {
+  const err = new AbortError("Transaction aborted due to connection close");
+  (err as any).command = {
+    name: command.name,
+    args: command.args
+  };
+  return err;
+}
+
+function abortTransactionFragments(commandQueue: Deque<ICommandItem>) {
+  for (let i = 0; i < commandQueue.length; ) {
+    const item = commandQueue.peekAt(i);
+    if (item.command.name === "multi") {
+      break;
+    }
+    if (item.command.name === "exec") {
+      commandQueue.remove(i, 1);
+      item.command.reject(abortError(item.command));
+      break;
+    }
+    if ((item.command as Command).inTransaction) {
+      commandQueue.remove(i, 1);
+      item.command.reject(abortError(item.command));
+    } else {
+      i++;
+    }
+  }
+}
+
 export function closeHandler(self) {
   return function() {
     self.setStatus("close");
@@ -85,23 +117,11 @@ export function closeHandler(self) {
       self.prevCondition = self.condition;
     }
     if (self.commandQueue.length) {
+      abortTransactionFragments(self.commandQueue);
       self.prevCommandQueue = self.commandQueue;
     }
     if (self.offlineQueue.length) {
-      for (let i = 0; i < self.offlineQueue.length; ) {
-        const item = self.offlineQueue.peekAt(i);
-        if (item && item.command.inTransaction) {
-          self.offlineQueue.remove(i, 1);
-          debug(
-            "removed. i is %s, length is now: %s",
-            i,
-            self.offlineQueue.length
-          );
-          item.command.reject(new Error("Cannot resend transacted command"));
-        } else {
-          i++;
-        }
-      }
+      abortTransactionFragments(self.offlineQueue);
     }
 
     if (self.manuallyClosing) {
