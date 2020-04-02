@@ -282,10 +282,7 @@ Redis.prototype.connect = function(callback) {
     };
 
     var _this = this;
-    asCallback(
-      this.connector.connect(function(type, err) {
-        _this.silentEmit(type, err);
-      }),
+    this.connector.connect(
       function(err, stream) {
         if (err) {
           _this.flushQueue(err);
@@ -303,7 +300,6 @@ Redis.prototype.connect = function(callback) {
         if (typeof options.keepAlive === "number") {
           stream.setKeepAlive(true, options.keepAlive);
         }
-
         stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
         stream.once("error", eventHandler.errorHandler(_this));
         stream.once("close", eventHandler.closeHandler(_this));
@@ -353,6 +349,9 @@ Redis.prototype.connect = function(callback) {
         };
         _this.once("ready", connectionReadyHandler);
         _this.once("close", connectionCloseHandler);
+      },
+      function(type, err) {
+        _this.silentEmit(type, err);
       }
     );
   });

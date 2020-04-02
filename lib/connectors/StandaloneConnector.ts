@@ -25,7 +25,7 @@ export default class StandaloneConnector extends AbstractConnector {
     super();
   }
 
-  public connect(_: ErrorEmitter) {
+  public connect(callback: (err: Error | null, stream?: NetStream) => void, _: ErrorEmitter) {
     const { options } = this;
     this.connecting = true;
 
@@ -51,33 +51,24 @@ export default class StandaloneConnector extends AbstractConnector {
       Object.assign(connectionOptions, options.tls);
     }
 
-    // TODO:
-    // We use native Promise here since other Promise
-    // implementation may use different schedulers that
-    // cause issue when the stream is resolved in the
-    // next tick.
-    // Should use the provided promise in the next major
-    // version and do not connect before resolved.
-    return new Promise<NetStream>((resolve, reject) => {
-      process.nextTick(() => {
-        if (!this.connecting) {
-          reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
-          return;
-        }
+    process.nextTick(() => {
+      if (!this.connecting) {
+        callback(new Error(CONNECTION_CLOSED_ERROR_MSG));
+        return;
+      }
 
-        try {
-          if (options.tls) {
-            this.stream = createTLSConnection(connectionOptions);
-          } else {
-            this.stream = createConnection(connectionOptions);
-          }
-        } catch (err) {
-          reject(err);
-          return;
+      try {
+        if (options.tls) {
+          this.stream = createTLSConnection(connectionOptions);
+        } else {
+          this.stream = createConnection(connectionOptions);
         }
+      } catch (err) {
+        callback(err);
+        return;
+      }
 
-        resolve(this.stream);
-      });
+      callback(null, this.stream);
     });
   }
 }
